@@ -1,0 +1,71 @@
+StructuralTalk
+Copyright 2026 StructuralTalk Contributors
+
+This product is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+================================================================================
+THIRD-PARTY SOFTWARE NOTICES
+================================================================================
+
+This software incorporates components from the following third-party projects.
+Their licenses and notices are included below as required.
+
+--------------------------------------------------------------------------------
+@google/generative-ai
+  License: Apache 2.0
+  Homepage: https://github.com/google-gemini/generative-ai-js
+  Used for: LLM function-calling and recursive agent orchestration via
+            the Google Gemini API.
+
+--------------------------------------------------------------------------------
+express
+  License: MIT
+  Homepage: https://expressjs.com
+  Used for: HTTP server and SSE endpoint routing.
+
+--------------------------------------------------------------------------------
+cors
+  License: MIT
+  Homepage: https://github.com/expressjs/cors
+  Used for: Cross-Origin Resource Sharing headers on the Express server.
+
+--------------------------------------------------------------------------------
+dotenv / dotenvx
+  License: BSD 2-Clause
+  Homepage: https://github.com/motdotla/dotenv
+  Used for: Loading environment variables (API keys) from .env files.
+
+--------------------------------------------------------------------------------
+react / react-dom
+  License: MIT
+  Homepage: https://react.dev
+  Used for: Frontend UI component rendering.
+
+--------------------------------------------------------------------------------
+lucide-react
+  License: ISC
+  Homepage: https://lucide.dev
+  Used for: SVG icon components in the chat interface.
+
+--------------------------------------------------------------------------------
+vite / @vitejs/plugin-react
+  License: MIT
+  Homepage: https://vite.dev
+  Used for: Frontend build tooling and hot module replacement.
+
+--------------------------------------------------------------------------------
+Tavily Search API
+  Terms of Service: https://tavily.com/terms
+  Used for: Real-time web search results consumed by the agent's tool calls.
+  NOTE: Tavily is a third-party service. Usage is subject to their terms.
+
+--------------------------------------------------------------------------------
+Brave Search API
+  Terms of Service: https://search.brave.com/help/api-terms
+  Used for: Fallback web search when Tavily is unavailable.
+  NOTE: Brave Search is a third-party service. Usage is subject to their terms.
+
+================================================================================

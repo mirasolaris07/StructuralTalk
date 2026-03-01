@@ -1,0 +1,23 @@
+{
+    "name": "structuraltalk-agent",
+    "version": "1.0.0",
+    "description": "A recursive AI research agent powered by Gemini + Tavily/Brave search. Expands questions into sub-topics, searches recursively, and streams thought events at each depth level.",
+    "type": "module",
+    "main": "index.js",
+    "keywords": [
+        "ai",
+        "agent",
+        "gemini",
+        "tavily",
+        "recursive",
+        "research",
+        "sse"
+    ],
+    "license": "MIT",
+    "dependencies": {
+        "@google/generative-ai": "^0.24.1"
+    },
+    "peerDependencies": {
+        "dotenv": ">=16.0.0"
+    }
+}
