@@ -378,5 +378,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // model to use
 
 ## TODO
 
-- [x] **Parallel fan-out / fan-in search mode** — when Gemini requests multiple tool calls in one round, fire them simultaneously with `Promise.all()` instead of sequentially, then merge results before sending back. Enabled via the "Sequential / Parallel" toggle in the UI.
+- [x] **Parallel fan-out / fan-in search mode** — when Gemini requests multiple tool calls in one round, fire them simultaneously with `Promise.all()` instead of sequentially, then merge results before sending back.
+- [ ] **Quantification & Qualification Framework** — Implement an automated post-research validator to ensure every final claim is backed by a specific source (qualification) and includes at least one data point (quantification).
+
 
