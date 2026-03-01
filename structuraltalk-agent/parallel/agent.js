@@ -1,173 +1,194 @@
 /**
  * @file agent.js (Parallel Mode)
- * @description Recursive agent loop with parallel tool-call execution.
- *
- * ARCHITECTURE OVERVIEW:
- * ─────────────────────
- * Unlike Sequential Mode, Parallel Mode launches all requested tool calls
- * in a single round simultaneously using Promise.all().
- *
- *   Round 0:  Gemini requests Search A, Search B, and Search C.
- *             ↓
- *             launch A, B, and C in parallel (non-blocking)
- *             ↓
- *             wait for all to finish (Fan-in)
- *             ↓
- *             Gemini synthesizes all results at once.
- *
- * This mode is faster for questions that require broad initial research
- * on multiple independent topics.
+ * @description Recursive Tree Agent with Parallel Fan-out / Fan-in.
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { searchTavily, searchBrave } from '../common/tools.js';
 import { config } from '../common/config.js';
 
-// ─── Main Export ─────────────────────────────────────────────────────────────
+// ─── Shared Thought Emitter ──────────────────────────────────────────────────
+
+let thoughtCounter = 0;
+/**
+ * Emits a structured thought event to the UI.
+ * Thread-safe for parallel branches within the same request.
+ */
+function emitThought(thought, onThought) {
+    thoughtCounter++;
+    onThought({
+        ...thought,
+        id: `t-p-${Date.now()}-${thoughtCounter}`,
+    });
+}
+
+// ─── Parallel Worker: Recursive Branch Researcher ─────────────────────────────
 
 /**
- * Run the Parallel StructuralTalk agent.
+ * Investigates a specific topic recursively. 
+ * Can fan out into further parallel sub-branches via tool calls.
+ * 
+ * @param {string} topic - The focus area for this branch.
+ * @param {number} depth - How deep in the tree we are.
+ * @param {function} onThought - UI streaming callback.
+ * @param {GoogleGenerativeAI} genAI - API client.
+ * @returns {Promise<string>} A detailed summary of findings for this branch.
  */
-export async function runAgent(userMessage, history = [], onThought) {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+async function researchTopic(topic, depth, onThought, genAI) {
+    if (depth >= config.parallel.MAX_RECURSION_DEPTH) {
+        return `[Limit] Summary for "${topic}": MAX depth reached.`;
+    }
 
-    const model = genAI.getGenerativeModel({
-        model: config.MODEL_ID,
-        tools: config.TOOL_DEFINITIONS,
-        systemInstruction: config.SYSTEM_INSTRUCTION + "\n\nPARALLEL MODE: Analyze the query and call tools for ALL independent sub-topics AT ONCE to save time. Synthesize multiple parallel info streams into one answer.",
+    const branchModel = genAI.getGenerativeModel({
+        model: config.shared.MODEL_ID,
+        tools: config.shared.TOOL_DEFINITIONS,
+        systemInstruction: config.shared.BASE_SYSTEM_INSTRUCTION + config.parallel.WORKER_INSTRUCTION
     });
-
-    const priorContents = history.map((msg) => ({
-        role: msg.role === 'agent' ? 'model' : 'user',
-        parts: [{ text: msg.content }],
-    }));
-
-    const currentMessageParts = [{ text: userMessage }];
-
-    let thoughtCounter = 0;
-    const emitThought = (thought) => {
-        thoughtCounter++;
-        onThought({
-            ...thought,
-            id: `t-p-${Date.now()}-${thoughtCounter}`,
-        });
-    };
 
     emitThought({
         type: 'reasoning',
-        title: 'Analyzing your question (Parallel Mode)',
-        content: `Breaking down: "${userMessage}"`,
-        depth: 0,
-        status: 'completed',
-    });
+        title: `Branch L${depth} Started`,
+        content: `Investigating focus topic: "${topic}"`,
+        depth,
+        status: 'running'
+    }, onThought);
 
-    const chat = model.startChat({ contents: priorContents });
-    let response = await chat.sendMessage(currentMessageParts);
+    const chat = branchModel.startChat();
+    let response = await chat.sendMessage(`Perform thorough research on: "${topic}"`);
 
-    let depth = 0;
-
-    while (depth < config.MAX_RECURSION_DEPTH) {
+    let branchIter = 0;
+    while (branchIter < config.parallel.BRANCH_MAX_ITERATIONS) {
         const candidate = response.response.candidates?.[0];
-        if (!candidate) break;
+        const parts = candidate?.content?.parts || [];
+        const toolCalls = parts.filter(p => p.functionCall);
 
-        const parts = candidate.content?.parts || [];
-        const functionCalls = parts.filter((p) => p.functionCall);
+        if (toolCalls.length === 0) break;
 
-        if (functionCalls.length === 0) break;
-
-        // ── 6a. Execute ALL tool calls in Parallel ─────────────────────────────
-
-        const functionResponses = await Promise.all(
-            functionCalls.map(async (part) => {
-                const { name, args } = part.functionCall;
+        const toolResults = await Promise.all(
+            toolCalls.map(async (call) => {
+                const { name, args } = call.functionCall;
                 const query = args.query;
 
-                const toolType = name === 'web_search' ? 'search' : 'action';
-                const title = name === 'web_search' ? `Searching: "${query}"` : `Deep Research: "${query}"`;
-
-                // Notify UI that a branch has started
                 emitThought({
-                    type: toolType,
-                    title,
-                    content: args.context || `Executing parallel branch for "${name}"...`,
-                    depth,
-                    status: 'running',
-                });
+                    type: 'search',
+                    title: `Branch L${depth} Search`,
+                    content: `Executing: ${name}("${query}")`,
+                    depth: depth,
+                    status: 'running'
+                }, onThought);
 
                 let result;
                 try {
-                    // Try Tavily
                     result = await searchTavily(query);
-
-                    const resultSummary = result.results
+                    const resultSnippet = result.results
                         .slice(0, 3)
-                        .map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.content?.substring(0, 150)}...`)
+                        .map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}`)
                         .join('\n\n');
 
                     emitThought({
                         type: 'summary',
-                        title: `Branch "${query}" found ${result.results.length} results`,
-                        content: resultSummary || 'No results found.',
+                        title: `Branch L${depth} Findings`,
+                        content: resultSnippet || 'No results found.',
                         depth: depth + 1,
-                        status: 'completed',
-                    });
+                        status: 'completed'
+                    }, onThought);
                 } catch (err) {
-                    // Fallback to Brave
-                    try {
-                        result = await searchBrave(query);
-                        emitThought({
-                            type: 'summary',
-                            title: `Branch "${query}" found ${result.results.length} (Brave)`,
-                            content: result.results.slice(0, 3).map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}`).join('\n\n'),
-                            depth: depth + 1,
-                            status: 'completed',
-                        });
-                    } catch (err2) {
-                        result = { results: [] };
-                        emitThought({
-                            type: 'reasoning',
-                            title: `Branch "${query}" failed`,
-                            content: `Errors: ${err.message}, ${err2.message}`,
-                            depth: depth + 1,
-                            status: 'error',
-                        });
-                    }
+                    result = { results: [] };
                 }
 
                 return {
                     functionResponse: {
                         name,
-                        response: {
-                            results: JSON.stringify(result.results?.slice(0, 5) || []),
-                        },
-                    },
+                        response: { results: JSON.stringify(result.results?.slice(0, 5) || []) }
+                    }
                 };
             })
         );
 
-        emitThought({
-            type: 'reasoning',
-            title: 'Synthesizing parallel search branches',
-            content: `Gathered results from ${functionCalls.length} simultaneous searches.`,
-            depth,
-            status: 'completed',
-        });
-
-        // Send results back to Gemini
-        response = await chat.sendMessage(functionResponses);
-        depth++;
+        response = await chat.sendMessage(toolResults);
+        branchIter++;
     }
 
     const finalParts = response.response.candidates?.[0]?.content?.parts || [];
-    const finalText = finalParts.filter((p) => p.text).map((p) => p.text).join('\n');
+    const branchSummary = finalParts.filter(p => p.text).map(p => p.text).join('\n');
 
     emitThought({
         type: 'summary',
-        title: 'Finalizing research',
-        content: `Completed research using Parallel Mode across ${depth} rounds.`,
+        title: `Branch L${depth} Complete`,
+        content: `Synthesized findings for "${topic}"`,
+        depth,
+        status: 'completed'
+    }, onThought);
+
+    return branchSummary;
+}
+
+// ─── Orchestrator: Main Export ───────────────────────────────────────────────
+
+/**
+ * Main entry point for Parallel Tree Mode.
+ * Orchestrates initial fan-out and final synthesis.
+ */
+export async function runAgent(userMessage, history = [], onThought) {
+    thoughtCounter = 0;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+    emitThought({
+        type: 'reasoning',
+        title: 'Orchestrating Research Tree',
+        content: `Analyzing: "${userMessage}"\nBreaking into parallel streams...`,
         depth: 0,
-        status: 'completed',
+        status: 'running'
+    }, onThought);
+
+    const orchestratorModel = genAI.getGenerativeModel({
+        model: config.shared.MODEL_ID,
+        systemInstruction: config.parallel.ORCHESTRATOR_INSTRUCTION
     });
 
-    return finalText || 'Failed to generate response in parallel mode.';
+    const orchResp = await orchestratorModel.generateContent(`Break this down: "${userMessage}"`);
+    const topics = orchResp.response.text().split('\n')
+        .map(line => line.replace(/^\d+\.\s*/, '').trim())
+        .filter(line => line.length > 5);
+
+    emitThought({
+        type: 'reasoning',
+        title: 'Fan-out Started',
+        content: `Starting ${topics.length} parallel research branches:\n${topics.map(t => `• ${t}`).join('\n')}`,
+        depth: 0,
+        status: 'completed'
+    }, onThought);
+
+    const allFindings = await Promise.all(
+        topics.map(topic => researchTopic(topic, 1, onThought, genAI))
+    );
+
+    emitThought({
+        type: 'reasoning',
+        title: 'Merging All Branches',
+        content: `Gathered ${allFindings.length} summaries. Formulating final answer...`,
+        depth: 0,
+        status: 'running'
+    }, onThought);
+
+    const synthesizer = genAI.getGenerativeModel({
+        model: config.shared.MODEL_ID,
+        systemInstruction: config.shared.BASE_SYSTEM_INSTRUCTION + "\n\nSYNTHESIZER: Merge branch findings into one exhaustive report."
+    });
+
+    const synthesisInput = `User Prompt: ${userMessage}\n` +
+        allFindings.map((f, i) => `--- BRANCH ${i + 1} SUMMARY ---\n${f}`).join('\n\n');
+
+    const finalResult = await synthesizer.generateContent(synthesisInput);
+    const finalText = finalResult.response.text();
+
+    emitThought({
+        type: 'summary',
+        title: 'Final Research Complete',
+        content: 'Formulated answer using Parallel Recursive Fan-out architecture.',
+        depth: 0,
+        status: 'completed'
+    }, onThought);
+
+    return finalText;
 }
