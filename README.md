@@ -353,11 +353,23 @@ Every thought emitted to your `onThought` callback:
 
 ## Configuration
 
-In `structuraltalk-agent/agent.js`, top of the file:
+All agent behavior is controlled via `structuraltalk-agent/common/config.js`:
 
 ```js
-const MAX_RECURSION_DEPTH = 6;              // max search rounds
-const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // model to use
+export const config = {
+  shared: {
+    MODEL_ID: 'gemini-2.5-flash-lite',
+    SEARCH_MAX_RESULTS: 5,
+    // Rigor directives for Qualification & Quantification...
+  },
+  sequential: {
+    MAX_RECURSION_DEPTH: 6,
+  },
+  parallel: {
+    MAX_RECURSION_DEPTH: 4,
+    BRANCH_MAX_ITERATIONS: 2, 
+  }
+};
 ```
 
 ---
