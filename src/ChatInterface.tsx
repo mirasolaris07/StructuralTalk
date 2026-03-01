@@ -9,7 +9,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Send, Upload, Command } from 'lucide-react';
 import { MessageNode } from './MessageNode';
-import { StructuralTalkClient } from '../structuraltalk-agent/client.js';
+import { StructuralTalkClient } from '../structuraltalk-agent/sequential/client.js';
 import './ChatInterface.css';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
