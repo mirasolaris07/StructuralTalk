@@ -39,7 +39,7 @@ export const MessageNode: React.FC<MessageNodeProps> = ({ message, isLive }) => 
           </div>
           <div className="thought-tree">
             {message.thoughts.map((thought) => (
-              <ThoughtNode key={thought.id} thought={thought} defaultExpanded={isLive} />
+              <ThoughtNode key={thought.id} thought={thought} defaultExpanded={isLive} isLive={isLive} />
             ))}
           </div>
         </div>
@@ -58,17 +58,20 @@ export const MessageNode: React.FC<MessageNodeProps> = ({ message, isLive }) => 
   );
 };
 
-const ThoughtNode: React.FC<{ thought: AgentThought; defaultExpanded?: boolean }> = ({
+const ThoughtNode: React.FC<{ thought: AgentThought; defaultExpanded?: boolean; isLive?: boolean }> = ({
   thought,
   defaultExpanded = false,
+  isLive = false,
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
 
   const hasChildren = thought.children && thought.children.length > 0;
 
   const getIcon = () => {
-    if (thought.status === 'running') return <Loader2 size={14} className="spinning icon-running" />;
+    // Only spin if this thought panel is still live (streaming in progress)
+    if (isLive && thought.status === 'running') return <Loader2 size={14} className="spinning icon-running" />;
     if (thought.status === 'error') return <AlertCircle size={14} className="icon-error" />;
+    // Once finalized, always show the static type icon
     switch (thought.type) {
       case 'search':
         return <Search size={14} className="icon-search" />;
@@ -84,9 +87,11 @@ const ThoughtNode: React.FC<{ thought: AgentThought; defaultExpanded?: boolean }
   };
 
   const getStatusIcon = () => {
-    if (thought.status === 'completed') return <CheckCircle size={12} className="status-icon status-completed" />;
-    if (thought.status === 'running') return <Loader2 size={12} className="spinning status-icon status-running" />;
     if (thought.status === 'error') return <AlertCircle size={12} className="status-icon status-error" />;
+    // Always show a checkmark on finalized messages, even if status was 'running'
+    if (!isLive || thought.status === 'completed') return <CheckCircle size={12} className="status-icon status-completed" />;
+    // Only show spinner on live in-progress thoughts
+    if (thought.status === 'running') return <Loader2 size={12} className="spinning status-icon status-running" />;
     return null;
   };
 
@@ -119,7 +124,7 @@ const ThoughtNode: React.FC<{ thought: AgentThought; defaultExpanded?: boolean }
           {hasChildren && (
             <div className="thought-children">
               {thought.children!.map((child) => (
-                <ThoughtNode key={child.id} thought={child} defaultExpanded={defaultExpanded} />
+                <ThoughtNode key={child.id} thought={child} defaultExpanded={defaultExpanded} isLive={isLive} />
               ))}
             </div>
           )}
