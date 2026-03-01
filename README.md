@@ -368,3 +368,10 @@ const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // model to use
 | Primary Search | Tavily API |
 | Fallback Search | Brave Search API |
 | Streaming | Server-Sent Events (SSE) |
+
+---
+
+## TODO
+
+- [ ] **Parallel fan-out / fan-in search mode** — when Gemini requests multiple tool calls in one round, fire them simultaneously with `Promise.all()` instead of sequentially, then merge results before sending back. Enables a tree-of-searches pattern where branches can themselves fan out further at the next depth level.
+
