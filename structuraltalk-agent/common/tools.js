@@ -12,11 +12,9 @@
  * ─────────────────────────────
  *   Raw Google results return HTML pages that need parsing + content extraction.
  *   Tavily does this automatically and is specifically optimized for AI use cases.
- *
- * ENVIRONMENT VARIABLES:
- *   TAVILY_API_KEY  — Get at https://app.tavily.com
- *   BRAVE_API_KEY   — Get at https://api.search.brave.com
  */
+
+import { config } from './config.js';
 
 // ─── Tavily Search ────────────────────────────────────────────────────────────
 
@@ -33,33 +31,21 @@
  *
  * @param {string} query - The search query to execute
  * @param {Object} [options] - Optional search configuration
- * @param {number} [options.maxResults=5] - Max number of results to return (1-10)
- * @param {'basic'|'advanced'} [options.searchDepth='basic'] - Search depth.
- *   'advanced' returns more results but costs 2x API credits.
- * @param {boolean} [options.includeAnswer=true] - Whether to include an
- *   AI-generated answer summary alongside raw results.
+ * @param {number} [options.maxResults=config.SEARCH_MAX_RESULTS] - Max number of results to return
+ * @param {'basic'|'advanced'} [options.searchDepth=config.TAVILY_SEARCH_DEPTH] - Search depth.
+ * @param {boolean} [options.includeAnswer=true] - Whether to include summary.
  *
  * @returns {Promise<{answer: string|null, results: TavilyResult[]}>}
- *
- * @typedef {Object} TavilyResult
- * @property {string} title   - Page title
- * @property {string} url     - Source URL
- * @property {string} content - Extracted page content (clean text)
- * @property {number} score   - Relevance score (0.0–1.0)
- *
- * @throws {Error} If TAVILY_API_KEY is not set or the API returns a non-200 status.
  */
 export async function searchTavily(query, options = {}) {
     const apiKey = process.env.TAVILY_API_KEY;
     if (!apiKey) {
-        throw new Error(
-            'TAVILY_API_KEY is not set. Add it to your .env file or process.env.'
-        );
+        throw new Error('TAVILY_API_KEY is not set.');
     }
 
     const {
-        maxResults = 5,
-        searchDepth = 'basic',
+        maxResults = config.SEARCH_MAX_RESULTS,
+        searchDepth = config.TAVILY_SEARCH_DEPTH,
         includeAnswer = true,
     } = options;
 
@@ -111,27 +97,18 @@ export async function searchTavily(query, options = {}) {
  *
  * @param {string} query - The search query to execute
  * @param {Object} [options] - Optional search configuration
- * @param {number} [options.count=5] - Number of results to return (1-20)
- * @param {string} [options.country='US'] - Country code for regional results
+ * @param {number} [options.count=config.SEARCH_MAX_RESULTS] - Number of results to return
+ * @param {string} [options.country=config.BRAVE_COUNTRY_CODE] - Country code
  *
  * @returns {Promise<{results: BraveResult[]}>}
- *
- * @typedef {Object} BraveResult
- * @property {string} title       - Page title
- * @property {string} url         - Source URL
- * @property {string} description - Short page description/snippet
- *
- * @throws {Error} If BRAVE_API_KEY is not set or the API returns a non-200 status.
  */
 export async function searchBrave(query, options = {}) {
     const apiKey = process.env.BRAVE_API_KEY;
     if (!apiKey) {
-        throw new Error(
-            'BRAVE_API_KEY is not set. Add it to your .env file or process.env.'
-        );
+        throw new Error('BRAVE_API_KEY is not set.');
     }
 
-    const { count = 5, country = 'US' } = options;
+    const { count = config.SEARCH_MAX_RESULTS, country = config.BRAVE_COUNTRY_CODE } = options;
 
     // Build query string
     const params = new URLSearchParams({

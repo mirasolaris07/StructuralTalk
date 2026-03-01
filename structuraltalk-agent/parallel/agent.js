@@ -21,60 +21,7 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { searchTavily, searchBrave } from '../common/tools.js';
-
-// ─── Configuration ───────────────────────────────────────────────────────────
-
-const MAX_RECURSION_DEPTH = 6;
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-
-// ─── Tool Definitions ────────────────────────────────────────────────────────
-
-const TOOL_DEFINITIONS = [
-    {
-        functionDeclarations: [
-            {
-                name: 'web_search',
-                description:
-                    'Search the web for real-time, up-to-date information. ' +
-                    'Use this for current data, facts, news, or any info beyond your training cut-off.',
-                parameters: {
-                    type: 'OBJECT',
-                    properties: {
-                        query: { type: 'STRING', description: 'The search query to execute' },
-                    },
-                    required: ['query'],
-                },
-            },
-            {
-                name: 'deep_research',
-                description:
-                    'Perform a deeper, more comprehensive search on a specific sub-topic. ' +
-                    'Use this to drill down after initial research revealed sub-questions.',
-                parameters: {
-                    type: 'OBJECT',
-                    properties: {
-                        query: { type: 'STRING', description: 'Focused search query' },
-                        context: { type: 'STRING', description: 'Why this deeper research is needed' },
-                    },
-                    required: ['query'],
-                },
-            },
-        ],
-    },
-];
-
-// ─── System Prompt ───────────────────────────────────────────────────────────
-
-const SYSTEM_INSTRUCTION = `You are StructuralTalk (Parallel Mode), an advanced research assistant. \
-You research multiple topics in parallel.
-
-When a user asks a question:
-1. Analyze and break it into sub-topics.
-2. Call tools for ALL sub-topics AT ONCE to save time.
-3. Synthesize multiple parallel streams of information into a comprehensive answer.
-
-IMPORTANT: Do not wait for one search to finish before starting another if they are independent. \
-Provide a thorough, well-organized final response.`;
+import { config } from '../common/config.js';
 
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
@@ -85,9 +32,9 @@ export async function runAgent(userMessage, history = [], onThought) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({
-        model: GEMINI_MODEL,
-        tools: TOOL_DEFINITIONS,
-        systemInstruction: SYSTEM_INSTRUCTION,
+        model: config.MODEL_ID,
+        tools: config.TOOL_DEFINITIONS,
+        systemInstruction: config.SYSTEM_INSTRUCTION + "\n\nPARALLEL MODE: Analyze the query and call tools for ALL independent sub-topics AT ONCE to save time. Synthesize multiple parallel info streams into one answer.",
     });
 
     const priorContents = history.map((msg) => ({
@@ -119,7 +66,7 @@ export async function runAgent(userMessage, history = [], onThought) {
 
     let depth = 0;
 
-    while (depth < MAX_RECURSION_DEPTH) {
+    while (depth < config.MAX_RECURSION_DEPTH) {
         const candidate = response.response.candidates?.[0];
         if (!candidate) break;
 

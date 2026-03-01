@@ -41,97 +41,9 @@
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { searchTavily, searchBrave } from '../common/tools.js';
+import { config } from '../common/config.js';
 
-// ─── Configuration ───────────────────────────────────────────────────────────
-
-/**
- * Maximum number of tool-call rounds the agent will perform before
- * forcing a final answer. Prevents infinite loops on hard questions.
- * Each round is one "think → search → read" cycle.
- * Recommended range: 3–8
- */
-const MAX_RECURSION_DEPTH = 6;
-
-/**
- * Gemini model identifier.
- * Options: 'gemini-2.5-flash-lite' | 'gemini-2.0-flash' | 'gemini-1.5-pro'
- * gemini-2.5-flash-lite is fast and cost-efficient for agentic loops.
- */
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
-
-// ─── Tool Definitions ────────────────────────────────────────────────────────
-
-/**
- * Tool schema passed to Gemini to teach it what external actions are available.
- * Gemini uses these definitions to decide when and how to call each tool.
- *
- * We expose two search tools so Gemini can differentiate:
- *   - web_search:    broad, first-pass search (used at L0)
- *   - deep_research: focused, narrow follow-up search (used at L1+)
- */
-const TOOL_DEFINITIONS = [
-    {
-        functionDeclarations: [
-            {
-                name: 'web_search',
-                description:
-                    'Search the web for real-time, up-to-date information on any topic. ' +
-                    'Use this tool when you need current data, facts, news, documentation, ' +
-                    'or any information that might be beyond your training cut-off.',
-                parameters: {
-                    type: 'OBJECT',
-                    properties: {
-                        query: {
-                            type: 'STRING',
-                            description: 'The search query to execute',
-                        },
-                    },
-                    required: ['query'],
-                },
-            },
-            {
-                name: 'deep_research',
-                description:
-                    'Perform a deeper, more comprehensive search on a specific sub-topic. ' +
-                    'Use this when you need to drill down into details after initial research ' +
-                    'has revealed a sub-question that needs further investigation.',
-                parameters: {
-                    type: 'OBJECT',
-                    properties: {
-                        query: {
-                            type: 'STRING',
-                            description: 'A focused, detailed search query for deep research',
-                        },
-                        context: {
-                            type: 'STRING',
-                            description: 'Brief explanation of why this deeper research is needed',
-                        },
-                    },
-                    required: ['query'],
-                },
-            },
-        ],
-    },
-];
-
-// ─── System Prompt ───────────────────────────────────────────────────────────
-
-/**
- * System instruction that defines how the agent behaves.
- * This is injected as a system-level context message before the conversation.
- */
-const SYSTEM_INSTRUCTION = `You are StructuralTalk, an advanced AI research assistant. \
-Your unique capability is thinking through problems in a structured, recursive manner.
-
-When a user asks you a question:
-1. First, analyze the query and break it into sub-topics that need investigation.
-2. Use the web_search tool to find current, relevant information for each sub-topic.
-3. If any search result raises deeper questions, use deep_research to investigate further.
-4. After gathering enough information, synthesize everything into a clear, comprehensive answer.
-
-IMPORTANT: Always use your tools when the question could benefit from real-time information. \
-Do NOT make up facts — search for them.
-When you provide your final answer, be thorough but well-organized with clear structure.`;
+// ─── Main Export ─────────────────────────────────────────────────────────────
 
 // ─── Main Export ─────────────────────────────────────────────────────────────
 
@@ -171,9 +83,9 @@ export async function runAgent(userMessage, history = [], onThought) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({
-        model: GEMINI_MODEL,
-        tools: TOOL_DEFINITIONS,
-        systemInstruction: SYSTEM_INSTRUCTION,
+        model: config.MODEL_ID,
+        tools: config.TOOL_DEFINITIONS,
+        systemInstruction: config.SYSTEM_INSTRUCTION,
     });
 
     // ── 2. Build conversation history for Gemini ─────────────────────────────
@@ -221,7 +133,7 @@ export async function runAgent(userMessage, history = [], onThought) {
     // It increments after each complete tool-call round (think → search → result).
     let depth = 0;
 
-    while (depth < MAX_RECURSION_DEPTH) {
+    while (depth < config.MAX_RECURSION_DEPTH) {
         const candidate = response.response.candidates?.[0];
         if (!candidate) break; // No response from Gemini
 
