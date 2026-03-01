@@ -80,11 +80,17 @@ StructuralTalk/
 │   └── index.js                 # App bootstrap — mounts StructuralTalkServer
 │
 ├── structuraltalk-agent/        # 📦 The reusable agent module
-│   ├── index.js                 # Public API (import from here)
-│   ├── agent.js                 # Recursive Gemini loop (the brain)
-│   ├── tools.js                 # Tavily + Brave search tools
-│   ├── server.js                # StructuralTalkServer class (Express SSE route)
-│   └── client.js                # StructuralTalkClient class (browser SSE reader)
+│   ├── index.js                 # Public API (unified)
+│   ├── common/                  # Shared server, client, and tools
+│   │   ├── server.js            # Unified StructuralTalkServer
+│   │   ├── client.js            # Unified StructuralTalkClient
+│   │   └── tools.js             # Tavily + Brave search tools
+│   ├── sequential/              # Iterative deeper research mode
+│   │   ├── agent.js             # Serial reasoning loop
+│   │   └── index.js             
+│   └── parallel/                # Fan-out / Fan-in search mode
+│       ├── agent.js             # Simultaneous reasoning loop
+│       └── index.js             
 │
 ├── .env                         # API keys (never commit this)
 └── package.json
@@ -137,10 +143,9 @@ The `structuraltalk-agent/` folder is a **self-contained Node.js module**. Copy 
 ```
 structuraltalk-agent/
 ├── index.js    ← import everything from here
-├── agent.js    ← the brain
-├── tools.js    ← search tools
-├── server.js   ← StructuralTalkServer (Express)
-└── client.js   ← StructuralTalkClient (browser)
+├── common/     ← unified server/client/tools
+├── sequential/ ← sequential mode brain
+└── parallel/   ← parallel mode brain
 ```
 
 ### Install the one dependency
@@ -373,5 +378,5 @@ const GEMINI_MODEL = 'gemini-2.5-flash-lite'; // model to use
 
 ## TODO
 
-- [ ] **Parallel fan-out / fan-in search mode** — when Gemini requests multiple tool calls in one round, fire them simultaneously with `Promise.all()` instead of sequentially, then merge results before sending back. Enables a tree-of-searches pattern where branches can themselves fan out further at the next depth level.
+- [x] **Parallel fan-out / fan-in search mode** — when Gemini requests multiple tool calls in one round, fire them simultaneously with `Promise.all()` instead of sequentially, then merge results before sending back. Enabled via the "Sequential / Parallel" toggle in the UI.
 

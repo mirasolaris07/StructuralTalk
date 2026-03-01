@@ -73,7 +73,7 @@
  * Registers the POST /api/chat SSE endpoint.
  * Import this in your Node.js server code only.
  */
-export { StructuralTalkServer } from './server.js';
+export { StructuralTalkServer } from '../common/server.js';
 
 /**
  * runAgent — the raw recursive agent function.
@@ -86,7 +86,7 @@ export { runAgent } from './agent.js';
  * Search tools — exposed for direct use if needed.
  * For example, use searchTavily() independently in your own code.
  */
-export { searchTavily, searchBrave } from './tools.js';
+export { searchTavily, searchBrave } from '../common/tools.js';
 
 // ── Client-side exports ───────────────────────────────────────────────────────
 
@@ -100,4 +100,4 @@ export { searchTavily, searchBrave } from './tools.js';
  *
  * Or import from index.js if your bundler handles tree-shaking:
  */
-export { StructuralTalkClient } from './client.js';
+export { StructuralTalkClient } from '../common/client.js';

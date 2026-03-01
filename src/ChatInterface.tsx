@@ -7,9 +7,9 @@
  */
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Send, Upload, Command } from 'lucide-react';
+import { Send, Upload, Command, Zap, List } from 'lucide-react';
 import { MessageNode } from './MessageNode';
-import { StructuralTalkClient } from '../structuraltalk-agent/sequential/client.js';
+import { StructuralTalkClient } from '../structuraltalk-agent/index.js';
 import './ChatInterface.css';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -42,6 +42,7 @@ export const ChatInterface: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [mode, setMode] = useState<'sequential' | 'parallel'>('sequential');
   const [liveThoughts, setLiveThoughts] = useState<AgentThought[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +85,7 @@ export const ChatInterface: React.FC = () => {
     await client.send({
       message: userMessage,
       history,
+      mode,
 
       // Called live for every thought step — updates the "thinking" display
       onThought: (thought) => {
@@ -132,6 +134,27 @@ export const ChatInterface: React.FC = () => {
 
   return (
     <div className="chat-container">
+      <div className="mode-selector-container">
+        <div className="mode-selector glass-panel">
+          <button
+            className={`mode-btn ${mode === 'sequential' ? 'active' : ''}`}
+            onClick={() => setMode('sequential')}
+            disabled={isTyping}
+          >
+            <List size={16} />
+            <span>Sequential</span>
+          </button>
+          <button
+            className={`mode-btn ${mode === 'parallel' ? 'active' : ''}`}
+            onClick={() => setMode('parallel')}
+            disabled={isTyping}
+          >
+            <Zap size={16} />
+            <span>Parallel</span>
+          </button>
+        </div>
+      </div>
+
       <div className="chat-history" ref={scrollRef}>
 
         {/* Empty state — shown when no messages yet */}

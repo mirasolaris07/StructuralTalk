@@ -13,7 +13,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { StructuralTalkServer } from '../structuraltalk-agent/sequential/index.js';
+import { StructuralTalkServer } from '../structuraltalk-agent/index.js';
 
 // Load .env variables (GEMINI_API_KEY, TAVILY_API_KEY, etc.)
 dotenv.config();

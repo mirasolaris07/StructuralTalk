@@ -1,12 +1,63 @@
 .chat-container {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
     position: relative;
+    overflow: hidden;
 }
+
+/* ── Mode Selector ───────────────────────────────── */
+
+.mode-selector-container {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    z-index: 10;
+    pointer-events: none;
+    /* Let clicks pass through except to buttons */
+}
+
+.mode-selector {
+    display: flex;
+    padding: 4px;
+    gap: 4px;
+    border-radius: 12px;
+    pointer-events: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(13, 17, 23, 0.8);
+}
+
+.mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.mode-btn.active {
+    background: var(--accent-gradient);
+    color: white;
+    box-shadow: 0 0 15px rgba(123, 104, 238, 0.3);
+}
+
+.mode-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ────────────────────────────────────────────────── */
 
 .chat-history {
     flex: 1;

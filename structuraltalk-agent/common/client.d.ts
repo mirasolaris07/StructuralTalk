@@ -8,6 +8,7 @@ import type { AgentThought } from '../../../src/ChatInterface';
 export interface SendOptions {
     message: string;
     history?: Array<{ role: 'user' | 'agent'; content: string }>;
+    mode?: 'sequential' | 'parallel';
     onThought?: (thought: AgentThought) => void;
     onResponse?: (answer: string) => void;
     onError?: (error: string) => void;

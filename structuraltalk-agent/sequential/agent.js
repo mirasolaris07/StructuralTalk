@@ -40,7 +40,7 @@
  */
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { searchTavily, searchBrave } from './tools.js';
+import { searchTavily, searchBrave } from '../common/tools.js';
 
 // ─── Configuration ───────────────────────────────────────────────────────────
 

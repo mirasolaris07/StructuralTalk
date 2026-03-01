@@ -82,6 +82,8 @@ export class StructuralTalkClient {
      *   Called once with the agent's complete final answer.
      * @param {(error: string) => void} [params.onError]
      *   Called if the agent or network encounters an error.
+     * @param {string} [params.mode='sequential']
+     *   The agent mode: 'sequential' or 'parallel'.
      * @param {() => void} [params.onDone]
      *   Called when the stream closes, regardless of success or failure.
      *   Good for resetting loading states.
@@ -90,7 +92,7 @@ export class StructuralTalkClient {
      *
      * @throws {Error} If the server is unreachable (network error).
      */
-    async send({ message, history = [], onThought, onResponse, onError, onDone }) {
+    async send({ message, history = [], mode = 'sequential', onThought, onResponse, onError, onDone }) {
         // Cancel any existing in-flight request before starting a new one
         this.abort();
         this._abortController = new AbortController();
@@ -100,7 +102,7 @@ export class StructuralTalkClient {
             const response = await fetch(this.chatUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message, history }),
+                body: JSON.stringify({ message, history, mode }),
                 signal: this._abortController.signal,
             });
 
