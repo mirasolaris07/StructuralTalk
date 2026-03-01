@@ -8,9 +8,9 @@ export const config = {
 
     /**
      * Gemini model identifier. 
-     * 'gemini-2.0-flash-lite' is the recommended balance of speed and logic.
+     * 'gemini-2.5-flash-lite' is the recommended balance of speed and logic.
      */
-    MODEL_ID: 'gemini-2.0-flash-lite',
+    MODEL_ID: 'gemini-2.5-flash-lite',
 
     /**
      * Maximum number of recursive research rounds.
